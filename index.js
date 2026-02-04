@@ -21,23 +21,37 @@ app.get("/", (req, res) => {
 
 app.post("/save-candidate", async (req, res) => {
   try {
-    console.log("Incoming data:", req.body);
+    console.log("Incoming payload:", req.body);
 
-    const { name, email, phone, resume_url, score } = req.body;
+    const payload = {
+      name: req.body.name || "unknown",
+      email: req.body.email || "na",
+      phone: req.body.phone || "na",
+      resume_url: req.body.resume_url || null,
+      score: Number(req.body.score) || 0
+    };
 
     const { data, error } = await supabase
-      .from("Candidates") // ⚠️ change if needed
-      .insert([{ name, email, phone, resume_url, score }]);
+      .from("Candidates")
+      .insert([payload]);
 
     if (error) {
-      console.error("Supabase error:", error);
-      return res.status(400).json({ error: error.message });
+      console.error("Supabase insert error:", error);
+      return res.status(500).json({
+        success: false,
+        error: error.message
+      });
     }
 
-    res.json({ success: true, data });
+    console.log("Inserted row:", data);
+    return res.json({ success: true });
+
   } catch (err) {
-    console.error("Server crash:", err);
-    res.status(500).json({ error: err.message });
+    console.error("Backend crash:", err);
+    return res.status(500).json({
+      success: false,
+      error: err.message
+    });
   }
 });
 
