@@ -28,6 +28,4 @@ app.post("/save-candidate", async (req, res) => {
   res.json({ success: true });
 });
 
-app.listen(3000, () => {
-  console.log("Backend running on port 3000");
-});
+export default app;
