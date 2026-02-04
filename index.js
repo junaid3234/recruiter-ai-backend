@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const app = express();
 
-// ---------- Middleware ----------
+/* ---------------- MIDDLEWARE ---------------- */
 app.use(cors({
   origin: "*",
   methods: ["GET", "POST"],
@@ -13,56 +13,60 @@ app.use(cors({
 
 app.use(express.json());
 
-// ---------- Supabase Client ----------
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+/* ---------------- SUPABASE ---------------- */
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
-if (!supabaseUrl || !supabaseServiceKey) {
-  console.error("❌ Supabase env vars missing");
-}
+console.log("🔑 Supabase URL exists:", !!SUPABASE_URL);
+console.log("🔑 Service key valid:", SUPABASE_SERVICE_KEY?.startsWith("sb_secret_"));
 
 const supabase = createClient(
-  supabaseUrl,
-  supabaseServiceKey
+  SUPABASE_URL,
+  SUPABASE_SERVICE_KEY
 );
 
-// ---------- Health Check ----------
+/* ---------------- HEALTH CHECK ---------------- */
 app.get("/", (req, res) => {
-  res.send("Backend is running");
+  res.status(200).send("Backend is running");
 });
 
-// ---------- Save Candidate ----------
+/* ---------------- SAVE CANDIDATE ---------------- */
 app.post("/save-candidate", async (req, res) => {
-  try {
-    console.log("📥 Incoming request body:", req.body);
+  console.log("🚀 /save-candidate HIT");
+  console.log("📥 Raw body:", req.body);
 
+  try {
     const payload = {
-      name: req.body.name || "unknown",
-      email: req.body.email || "na",
-      phone: req.body.phone || "na",
-      resume_url: req.body.resume_url || null,
+      name: req.body.name ?? "unknown",
+      email: req.body.email ?? "na",
+      phone: req.body.phone ?? "na",
+      resume_url: req.body.resume_url ?? null,
       score: Number(req.body.score) || 0
     };
 
-    console.log("📦 Payload to insert:", payload);
+    console.log("📦 Insert payload:", payload);
 
     const { data, error } = await supabase
       .from("Candidates")
-      .insert([payload]);
+      .insert([payload])
+      .select();
 
     if (error) {
-      console.error("❌ Supabase insert error:", error);
+      console.error("❌ SUPABASE ERROR:", error);
       return res.status(500).json({
         success: false,
         error: error.message
       });
     }
 
-    console.log("✅ Insert successful:", data);
-    return res.json({ success: true });
+    console.log("✅ INSERT SUCCESS:", data);
+    return res.status(200).json({
+      success: true,
+      data
+    });
 
   } catch (err) {
-    console.error("🔥 Server crash:", err);
+    console.error("🔥 SERVER CRASH:", err);
     return res.status(500).json({
       success: false,
       error: err.message
@@ -70,5 +74,5 @@ app.post("/save-candidate", async (req, res) => {
   }
 });
 
-// ---------- Export for Vercel ----------
+/* ---------------- EXPORT ---------------- */
 export default app;
