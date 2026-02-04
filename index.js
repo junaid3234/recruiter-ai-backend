@@ -21,18 +21,22 @@ app.get("/", (req, res) => {
 
 app.post("/save-candidate", async (req, res) => {
   try {
+    console.log("Incoming data:", req.body);
+
     const { name, email, phone, resume_url, score } = req.body;
 
-    const { error } = await supabase
-      .from("candidates")
+    const { data, error } = await supabase
+      .from("Candidates") // ⚠️ change if needed
       .insert([{ name, email, phone, resume_url, score }]);
 
     if (error) {
-      return res.status(400).json({ error });
+      console.error("Supabase error:", error);
+      return res.status(400).json({ error: error.message });
     }
 
-    res.json({ success: true });
+    res.json({ success: true, data });
   } catch (err) {
+    console.error("Server crash:", err);
     res.status(500).json({ error: err.message });
   }
 });
