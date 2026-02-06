@@ -42,6 +42,7 @@ app.post("/save-candidate", async (req, res) => {
     if (error) throw error;
 
     res.json({ success: true, data });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
