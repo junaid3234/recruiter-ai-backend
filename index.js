@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const app = express();
 
-/* ---------------- MIDDLEWARE ---------------- */
+/* ---------- Middleware ---------- */
 app.use(cors({
   origin: "*",
   methods: ["GET", "POST"],
@@ -13,27 +13,27 @@ app.use(cors({
 
 app.use(express.json());
 
-/* ---------------- SUPABASE ---------------- */
+/* ---------- Supabase ---------- */
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
-console.log("🔑 Supabase URL exists:", !!SUPABASE_URL);
-console.log("🔑 Service key valid:", SUPABASE_SERVICE_KEY?.startsWith("sb_secret_"));
+console.log("Supabase URL exists:", !!SUPABASE_URL);
+console.log("Service key valid:", SUPABASE_SERVICE_KEY?.startsWith("sb_secret_"));
 
 const supabase = createClient(
   SUPABASE_URL,
   SUPABASE_SERVICE_KEY
 );
 
-/* ---------------- HEALTH CHECK ---------------- */
+/* ---------- Health Check ---------- */
 app.get("/", (req, res) => {
   res.status(200).send("Backend is running");
 });
 
-/* ---------------- SAVE CANDIDATE ---------------- */
+/* ---------- Save Candidate (existing feature) ---------- */
 app.post("/save-candidate", async (req, res) => {
-  console.log("🚀 /save-candidate HIT");
-  console.log("📥 Raw body:", req.body);
+  console.log("SAVE-CANDIDATE HIT");
+  console.log("Incoming body:", req.body);
 
   try {
     const payload = {
@@ -44,29 +44,27 @@ app.post("/save-candidate", async (req, res) => {
       score: Number(req.body.score) || 0
     };
 
-    console.log("📦 Insert payload:", payload);
-
     const { data, error } = await supabase
       .from("Candidates")
       .insert([payload])
       .select();
 
     if (error) {
-      console.error("❌ SUPABASE ERROR:", error);
+      console.error("Supabase insert error:", error);
       return res.status(500).json({
         success: false,
         error: error.message
       });
     }
 
-    console.log("✅ INSERT SUCCESS:", data);
+    console.log("Insert success:", data);
     return res.status(200).json({
       success: true,
       data
     });
 
   } catch (err) {
-    console.error("🔥 SERVER CRASH:", err);
+    console.error("Server crash:", err);
     return res.status(500).json({
       success: false,
       error: err.message
@@ -74,5 +72,34 @@ app.post("/save-candidate", async (req, res) => {
   }
 });
 
-/* ---------------- EXPORT ---------------- */
+/* ---------- Get All Candidates (NEW for Dashboard) ---------- */
+app.get("/candidates", async (req, res) => {
+  console.log("GET-CANDIDATES HIT");
+
+  try {
+    const { data, error } = await supabase
+      .from("Candidates")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Fetch error:", error);
+      return res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+
+    return res.status(200).json(data);
+
+  } catch (err) {
+    console.error("Server crash:", err);
+    return res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
+
+/* ---------- Export for Vercel ---------- */
 export default app;
