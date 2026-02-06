@@ -7,7 +7,7 @@ const app = express();
 /* ---------- Middleware ---------- */
 app.use(cors({
   origin: "*",
-  methods: ["GET", "POST"],
+  methods: ["GET", "POST", "DELETE"],
   allowedHeaders: ["Content-Type"]
 }));
 
@@ -30,7 +30,7 @@ app.get("/", (req, res) => {
   res.status(200).send("Backend is running");
 });
 
-/* ---------- Save Candidate (existing feature) ---------- */
+/* ---------- Save Candidate ---------- */
 app.post("/save-candidate", async (req, res) => {
   console.log("SAVE-CANDIDATE HIT");
   console.log("Incoming body:", req.body);
@@ -72,7 +72,7 @@ app.post("/save-candidate", async (req, res) => {
   }
 });
 
-/* ---------- Get All Candidates (NEW for Dashboard) ---------- */
+/* ---------- Get All Candidates ---------- */
 app.get("/candidates", async (req, res) => {
   console.log("GET-CANDIDATES HIT");
 
@@ -91,6 +91,39 @@ app.get("/candidates", async (req, res) => {
     }
 
     return res.status(200).json(data);
+
+  } catch (err) {
+    console.error("Server crash:", err);
+    return res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
+
+/* ---------- Delete Candidate (NEW) ---------- */
+app.delete("/delete/:id", async (req, res) => {
+  const { id } = req.params;
+  console.log("DELETE HIT:", id);
+
+  try {
+    const { error } = await supabase
+      .from("Candidates")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error("Delete error:", error);
+      return res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Candidate deleted"
+    });
 
   } catch (err) {
     console.error("Server crash:", err);
