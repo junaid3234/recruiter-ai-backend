@@ -32,7 +32,6 @@ app.post("/save-candidate", async (req,res)=>{
       resume_url:req.body.resume_url ?? null,
       score:Number(req.body.score)||0,
       status:"New",
-      scanned_at:req.body.scanned_at ?? new Date().toISOString(),
       deleted_at:null
     };
 
@@ -55,7 +54,7 @@ app.get("/candidates", async(req,res)=>{
     .from("Candidates")
     .select("*")
     .is("deleted_at",null)
-    .order("scanned_at",{ascending:false});
+    .order("created_at",{ascending:false});
 
   if(error) return res.status(500).json(error);
   res.json(data);
@@ -66,14 +65,27 @@ app.get("/deleted", async(req,res)=>{
   const {data,error}=await supabase
     .from("Candidates")
     .select("*")
-    .not("deleted_at","is",null)
-    .order("deleted_at",{ascending:false});
+    .not("deleted_at","is",null);
 
   if(error) return res.status(500).json(error);
   res.json(data);
 });
 
-/* Bulk Delete */
+/* Update Status */
+app.put("/status/:id", async(req,res)=>{
+  const {id}=req.params;
+  const {status}=req.body;
+
+  const {error}=await supabase
+    .from("Candidates")
+    .update({status})
+    .eq("id",id);
+
+  if(error) return res.status(500).json(error);
+  res.json({success:true});
+});
+
+/* Soft Delete */
 app.delete("/delete", async(req,res)=>{
   const ids=req.body.ids;
 
