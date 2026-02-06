@@ -6,7 +6,7 @@ const app = express();
 
 app.use(cors({
   origin: "*",
-  methods: ["GET", "POST", "DELETE", "PUT"],
+  methods: ["GET","POST","PUT","DELETE"],
   allowedHeaders: ["Content-Type"]
 }));
 
@@ -18,102 +18,107 @@ const supabase = createClient(
 );
 
 /* Health */
-app.get("/", (req, res) => {
+app.get("/", (req,res)=>{
   res.send("Backend is running");
 });
 
 /* Save Candidate */
-app.post("/save-candidate", async (req, res) => {
-  try {
-    const payload = {
-      name: req.body.name ?? "unknown",
-      email: req.body.email ?? "na",
-      phone: req.body.phone ?? "na",
-      resume_url: req.body.resume_url ?? null,
-      score: Number(req.body.score) || 0,
-      deleted_at: null
+app.post("/save-candidate", async (req,res)=>{
+  try{
+    const payload={
+      name:req.body.name ?? "unknown",
+      email:req.body.email ?? "na",
+      phone:req.body.phone ?? "na",
+      resume_url:req.body.resume_url ?? null,
+      score:Number(req.body.score)||0,
+      status:"New",
+      deleted_at:null
     };
 
-    const { data, error } = await supabase
+    const {data,error}=await supabase
       .from("Candidates")
       .insert([payload])
       .select();
 
-    if (error) throw error;
+    if(error) throw error;
 
-    res.json({ success: true, data });
-
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.json({success:true,data});
+  }catch(err){
+    res.status(500).json({error:err.message});
   }
 });
 
-/* Active Candidates */
-app.get("/candidates", async (req, res) => {
-  const { data, error } = await supabase
+/* Active */
+app.get("/candidates", async(req,res)=>{
+  const {data,error}=await supabase
     .from("Candidates")
     .select("*")
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false });
+    .is("deleted_at",null)
+    .order("created_at",{ascending:false});
 
-  if (error) return res.status(500).json(error);
-
+  if(error) return res.status(500).json(error);
   res.json(data);
 });
 
-/* Recently Deleted */
-app.get("/deleted", async (req, res) => {
-  const { data, error } = await supabase
+/* Deleted */
+app.get("/deleted", async(req,res)=>{
+  const {data,error}=await supabase
     .from("Candidates")
     .select("*")
-    .not("deleted_at", "is", null)
-    .order("deleted_at", { ascending: false });
+    .not("deleted_at","is",null);
 
-  if (error) return res.status(500).json(error);
-
+  if(error) return res.status(500).json(error);
   res.json(data);
+});
+
+/* Update Status */
+app.put("/status/:id", async(req,res)=>{
+  const {id}=req.params;
+  const {status}=req.body;
+
+  const {error}=await supabase
+    .from("Candidates")
+    .update({status})
+    .eq("id",id);
+
+  if(error) return res.status(500).json(error);
+  res.json({success:true});
 });
 
 /* Soft Delete */
-app.delete("/delete/:id", async (req, res) => {
-  const { id } = req.params;
+app.delete("/delete", async(req,res)=>{
+  const ids=req.body.ids;
 
-  const { error } = await supabase
+  await supabase
     .from("Candidates")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id", id);
+    .update({deleted_at:new Date().toISOString()})
+    .in("id",ids);
 
-  if (error) return res.status(500).json(error);
-
-  res.json({ success: true });
+  res.json({success:true});
 });
 
 /* Restore */
-app.put("/restore/:id", async (req, res) => {
-  const { id } = req.params;
+app.put("/restore", async(req,res)=>{
+  const ids=req.body.ids;
 
-  const { error } = await supabase
+  await supabase
     .from("Candidates")
-    .update({ deleted_at: null })
-    .eq("id", id);
+    .update({deleted_at:null})
+    .in("id",ids);
 
-  if (error) return res.status(500).json(error);
-
-  res.json({ success: true });
+  res.json({success:true});
 });
 
 /* Permanent Delete */
-app.delete("/permanent/:id", async (req, res) => {
-  const { id } = req.params;
+app.delete("/permanent", async(req,res)=>{
+  const ids=req.body.ids;
 
-  const { error } = await supabase
+  await supabase
     .from("Candidates")
     .delete()
-    .eq("id", id);
+    .in("id",ids);
 
-  if (error) return res.status(500).json(error);
-
-  res.json({ success: true });
+  res.json({success:true});
 });
 
 export default app;
